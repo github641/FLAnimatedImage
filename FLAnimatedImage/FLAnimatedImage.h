@@ -6,14 +6,9 @@
 //  Copyright (c) 2013-2015 Flipboard. All rights reserved.
 //
 
-
-
-
 /* lzy注170816：
  SDWebImage在4.1时，取消了原来的UIImage+Gif的分类来加载动图。
  而是add subModule的形式，使用了本类库来加载动图，并写了一个工具类来和SDWebImage进行契合。
-
- 
  */
 
 /**
@@ -64,7 +59,9 @@
 // Allow user classes conveniently just importing one header.
 #import "FLAnimatedImageView.h"
 
-
+/* lzy注170818：
+ 这个宏用来定义下，哪个是 指定的初始化方法
+ */
 #ifndef NS_DESIGNATED_INITIALIZER
     #if __has_attribute(objc_designated_initializer)
         #define NS_DESIGNATED_INITIALIZER __attribute((objc_designated_initializer))
@@ -75,26 +72,27 @@
 
 extern const NSTimeInterval kFLAnimatedImageDelayTimeIntervalMinimum;
 
-//
+// 非常重要的类库描述，需要仔细看
 //  An `FLAnimatedImage`'s job is to deliver frames in a highly performant way and works in conjunction with `FLAnimatedImageView`.
 //  It subclasses `NSObject` and not `UIImage` because it's only an "image" in the sense that a sea lion is a lion.
-//  It tries to intelligently choose the frame cache size depending on the image and memory situation with the goal to lower CPU usage for smaller ones, lower memory usage for larger ones and always deliver frames for high performant play-back.
+//  It tries to intelligently（理智的、聪明的） choose the frame cache size depending on the image and memory situation with the goal to lower CPU usage for smaller ones, lower memory usage for larger ones and always deliver frames for high performant play-back.
 //  Note: `posterImage`, `size`, `loopCount`, `delayTimes` and `frameCount` don't change after successful initialization.
 //
+
 @interface FLAnimatedImage : NSObject
 
 @property (nonatomic, strong, readonly) UIImage *posterImage; // Guaranteed to be loaded; usually equivalent to `-imageLazilyCachedAtIndex:0`
 @property (nonatomic, assign, readonly) CGSize size; // The `.posterImage`'s `.size`
 
 @property (nonatomic, assign, readonly) NSUInteger loopCount; // 0 means repeating the animation indefinitely
-@property (nonatomic, strong, readonly) NSDictionary *delayTimesForIndexes; // Of type `NSTimeInterval` boxed in `NSNumber`s
+@property (nonatomic, strong, readonly) NSDictionary *delayTimesForIndexes; // Of type `NSTimeInterval` boxed in `NSNumber`s。内部是 `NSTimeInterval`（实际上是double）装箱后的NSNumber`
 @property (nonatomic, assign, readonly) NSUInteger frameCount; // Number of valid frames; equal to `[.delayTimes count]`
 
 @property (nonatomic, assign, readonly) NSUInteger frameCacheSizeCurrent; // Current size of intelligently chosen buffer window; can range in the interval [1..frameCount]
-@property (nonatomic, assign) NSUInteger frameCacheSizeMax; // Allow to cap the cache size; 0 means no specific limit (default)
+@property (nonatomic, assign) NSUInteger frameCacheSizeMax; // Allow to cap（帽子，覆盖） the cache size; 0 means no specific limit (default)
 
 // Intended to be called from main thread synchronously; will return immediately.
-// If the result isn't cached, will return `nil`; the caller should then pause playback, not increment frame counter and keep polling.
+// If the result isn't cached, will return `nil`; the caller should then pause playback, not increment frame counter and keep polling（投票、轮询）.
 // After an initial loading time, depending on `frameCacheSize`, frames should be available immediately from the cache.
 - (UIImage *)imageLazilyCachedAtIndex:(NSUInteger)index;
 
@@ -104,6 +102,7 @@ extern const NSTimeInterval kFLAnimatedImageDelayTimeIntervalMinimum;
 // On success, the initializers return an `FLAnimatedImage` with all fields initialized, on failure they return `nil` and an error will be logged.
 - (instancetype)initWithAnimatedGIFData:(NSData *)data;
 // Pass 0 for optimalFrameCacheSize to get the default, predrawing is enabled by default.
+//  optimal 最佳的
 - (instancetype)initWithAnimatedGIFData:(NSData *)data optimalFrameCacheSize:(NSUInteger)optimalFrameCacheSize predrawingEnabled:(BOOL)isPredrawingEnabled NS_DESIGNATED_INITIALIZER;
 + (instancetype)animatedImageWithGIFData:(NSData *)data;
 
@@ -117,7 +116,7 @@ typedef NS_ENUM(NSUInteger, FLLogLevel) {
     FLLogLevelWarn,
     FLLogLevelInfo,
     FLLogLevelDebug,
-    FLLogLevelVerbose
+    FLLogLevelVerbose// 冗长的、啰嗦的
 };
 
 @interface FLAnimatedImage (Logging)
@@ -130,7 +129,7 @@ typedef NS_ENUM(NSUInteger, FLLogLevel) {
 #define FLLog(logLevel, format, ...) [FLAnimatedImage logStringFromBlock:^NSString *{ return [NSString stringWithFormat:(format), ## __VA_ARGS__]; } withLevel:(logLevel)]
 
 /* lzy注170816：
- 日程大部分接触到的是NSObject的子类。虽然也了解过还有其他的基类。但是经历过，子类化一个非NSObject类的情况。
+ 大部分接触到的是NSObject的子类。虽然也了解过还有其他的基类。但是没有经历过，子类化一个非NSObject类的情况。
  */
 @interface FLWeakProxy : NSProxy
 

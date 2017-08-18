@@ -19,3 +19,7 @@ http://www.cocoachina.com/ios/20151231/14823.html
 4、NSRunLoopCommonModes、NSDefaultRunLoopMode 看印象笔记收藏的很多学习资料组成的『Runloop』笔记本
 
 5、NSTimeInterval 就是double类型。
+
+6、NSHashTable
+
+7、CGImageSourceRef

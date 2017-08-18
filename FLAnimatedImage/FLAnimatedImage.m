@@ -11,26 +11,41 @@
 #import <ImageIO/ImageIO.h>
 #import <MobileCoreServices/MobileCoreServices.h>
 
-
+/* lzy注170818：
+ 定义一个字节是几位
+ */
 // From vm_param.h, define for iOS 8.0 or higher to build on device.
 #ifndef BYTE_SIZE
     #define BYTE_SIZE 8 // byte size in bits
 #endif
-
+/* lzy注170818：
+ megəbaɪt，定义兆字节的大小
+ */
 #define MEGABYTE (1024 * 1024)
 
 // This is how the fastest browsers do it as per 2012: http://nullsleep.tumblr.com/post/16524517190/animated-gif-minimum-frame-delay-browser-compatibility 最快的浏览器一般定义的：动图延迟时间间隔最小值
 const NSTimeInterval kFLAnimatedImageDelayTimeIntervalMinimum = 0.02;
 
 // An animated image's data size (dimensions * frameCount) category; its value is the max allowed memory (in MB).
+
+    /* TODO: #待完成#
+     A 100x200px GIF with 30 frames is ~2.3MB in our pixel format。这个例子不知道怎么算来的
+     */
+
 // E.g.: A 100x200px GIF with 30 frames is ~2.3MB in our pixel format and would fall into the `FLAnimatedImageDataSizeCategoryAll` category.
+
+/* lzy注170818：
+ 图片数据大小的枚举定义
+ */
 typedef NS_ENUM(NSUInteger, FLAnimatedImageDataSizeCategory) {
     FLAnimatedImageDataSizeCategoryAll = 10,       // All frames permanently in memory (be nice to the CPU)
     FLAnimatedImageDataSizeCategoryDefault = 75,   // A frame cache of default size in memory (usually real-time performance and keeping low memory profile)
     FLAnimatedImageDataSizeCategoryOnDemand = 250, // Only keep one frame at the time in memory (easier on memory, slowest performance)
     FLAnimatedImageDataSizeCategoryUnsupported     // Even for one frame too large, computer says no.
 };
-
+/* lzy注170818：
+ 每帧图片缓存大小的枚举定义
+ */
 typedef NS_ENUM(NSUInteger, FLAnimatedImageFrameCacheSize) {
     FLAnimatedImageFrameCacheSizeNoLimit = 0,                // 0 means no specific limit
     FLAnimatedImageFrameCacheSizeLowMemory = 1,              // The minimum frame cache size; this will produce frames on-demand.
@@ -55,7 +70,7 @@ typedef NS_ENUM(NSUInteger, FLAnimatedImageFrameCacheSize) {
 @property (nonatomic, assign, readonly, getter=isPredrawingEnabled) BOOL predrawingEnabled; // Enables predrawing of images to improve performance.
 @property (nonatomic, assign) NSUInteger frameCacheSizeMaxInternal; // Allow to cap the cache size e.g. when memory warnings occur; 0 means no specific limit (default)
 @property (nonatomic, assign) NSUInteger requestedFrameIndex; // Most recently requested frame index
-@property (nonatomic, assign, readonly) NSUInteger posterImageFrameIndex; // Index of non-purgable poster image; never changes
+@property (nonatomic, assign, readonly) NSUInteger posterImageFrameIndex; // Index of non-purgable(purgable方便的) poster image; never changes
 @property (nonatomic, strong, readonly) NSMutableDictionary *cachedFramesForIndexes;
 @property (nonatomic, strong, readonly) NSMutableIndexSet *cachedFrameIndexes; // Indexes of cached frames
 @property (nonatomic, strong, readonly) NSMutableIndexSet *requestedFrameIndexes; // Indexes of frames that are currently produced in the background
@@ -65,7 +80,7 @@ typedef NS_ENUM(NSUInteger, FLAnimatedImageFrameCacheSize) {
 @property (nonatomic, strong, readonly) __attribute__((NSObject)) CGImageSourceRef imageSource;
 
 // The weak proxy is used to break retain cycles with delayed actions from memory warnings.
-// We are lying about the actual type here to gain static type checking and eliminate casts.
+// We are lying about the actual type here to gain static type checking and eliminate（ɪ'lɪmɪnet消除） casts.
 // The actual type of the object is `FLWeakProxy`.
 @property (nonatomic, strong, readonly) FLAnimatedImage *weakProxy;
 
@@ -77,14 +92,17 @@ typedef NS_ENUM(NSUInteger, FLAnimatedImageFrameCacheSize) {
 
 
 // For custom dispatching of memory warnings to avoid deallocation races since NSNotificationCenter doesn't retain objects it is notifying.
+/* lzy注170818：
+ 初遇NSHashTable
+ */
 static NSHashTable *allAnimatedImagesWeak;
 
 @implementation FLAnimatedImage
 
-#pragma mark - Accessors
+#pragma mark - Accessors（访问器）
 #pragma mark Public
 
-// This is the definite value the frame cache needs to size itself to.
+// This is the definite（确切的） value the frame cache needs to size itself to.
 - (NSUInteger)frameCacheSizeCurrent
 {
     NSUInteger frameCacheSizeCurrent = self.frameCacheSizeOptimal;
@@ -144,6 +162,14 @@ static NSHashTable *allAnimatedImagesWeak;
 {
     if (self == [FLAnimatedImage class]) {
         // UIKit memory warning notification handler shared by all of the instances
+        /* lzy注170818：
+         + (NSHashTable<ObjectType> *)weakObjectsHashTable;
+         Description
+         Returns a new hash table for storing weak references to its contents.
+         Returns
+         A new hash table that uses the NSPointerFunctionsWeakMemory options and NSPointerFunctionsObjectPersonality and has an initial capacity of 0.
+         Availability	iOS (6.0 and later), macOS (10.8 and later), tvOS (6.0 and later), watchOS (2.0 and later)
+         */
         allAnimatedImagesWeak = [NSHashTable weakObjectsHashTable];
         
         [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationDidReceiveMemoryWarningNotification object:nil queue:nil usingBlock:^(NSNotification *note) {
@@ -200,7 +226,14 @@ static NSHashTable *allAnimatedImagesWeak;
         _cachedFrameIndexes = [[NSMutableIndexSet alloc] init];
         _requestedFrameIndexes = [[NSMutableIndexSet alloc] init];
 
-        // Note: We could leverage `CGImageSourceCreateWithURL` too to add a second initializer `-initWithAnimatedGIFContentsOfURL:`.
+        // Note: We could leverage（利用） `CGImageSourceCreateWithURL` too to add a second initializer `-initWithAnimatedGIFContentsOfURL:`.
+        /* lzy注170818：
+         /* Create an image source reading from `data'.  The `options' dictionary
+         * may be used to request additional creation options; see the list of keys
+         * above for more information.
+        
+        IMAGEIO_EXTERN CGImageSourceRef __nullable CGImageSourceCreateWithData(CFDataRef __nonnull data, CFDictionaryRef __nullable options) IMAGEIO_AVAILABLE_STARTING(__MAC_10_4, __IPHONE_4_0);
+         */
         _imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)data,
                                                    (__bridge CFDictionaryRef)@{(NSString *)kCGImageSourceShouldCache: @NO});
         // Early return on failure!
@@ -210,8 +243,8 @@ static NSHashTable *allAnimatedImagesWeak;
         }
         
         // Early return if not GIF!
-        CFStringRef imageSourceContainerType = CGImageSourceGetType(_imageSource);
-        BOOL isGIFData = UTTypeConformsTo(imageSourceContainerType, kUTTypeGIF);
+        CFStringRef imageSourceContainerType = CGImageSourceGetType(_imageSource);// imageIO的方法
+        BOOL isGIFData = UTTypeConformsTo(imageSourceContainerType, kUTTypeGIF);// mobileService的方法
         if (!isGIFData) {
             FLLog(FLLogLevelError, @"Supplied data is of type %@ and doesn't seem to be GIF data %@", imageSourceContainerType, data);
             return nil;
@@ -230,7 +263,7 @@ static NSHashTable *allAnimatedImagesWeak;
         NSDictionary *imageProperties = (__bridge_transfer NSDictionary *)CGImageSourceCopyProperties(_imageSource, NULL);
         _loopCount = [[[imageProperties objectForKey:(id)kCGImagePropertyGIFDictionary] objectForKey:(id)kCGImagePropertyGIFLoopCount] unsignedIntegerValue];
         
-        // Iterate through frame images
+        // Iterate through frame images。循环遍历每一帧图片
         size_t imageCount = CGImageSourceGetCount(_imageSource);
         NSUInteger skippedFrameCount = 0;
         NSMutableDictionary *delayTimesForIndexesMutable = [NSMutableDictionary dictionaryWithCapacity:imageCount];
@@ -375,11 +408,11 @@ static NSHashTable *allAnimatedImagesWeak;
 #pragma mark - Public Methods
 
 // See header for more details.
-// Note: both consumer and producer are throttled: consumer by frame timings and producer by the available memory (max buffer window size).
+// Note: both consumer and producer are throttled（节流的，阻抗的）: consumer by frame timings（时间控制、读写周期） and producer by the available memory (max buffer window size).
 - (UIImage *)imageLazilyCachedAtIndex:(NSUInteger)index
 {
     // Early return if the requested index is beyond bounds.
-    // Note: We're comparing an index with a count and need to bail on greater than or equal to.
+    // Note: We're comparing an index with a count and need to bail（保释） on greater than or equal to.
     if (index >= self.frameCount) {
         FLLog(FLLogLevelWarn, @"Skipping requested frame %lu beyond bounds (total frame count: %lu) for animated image: %@", (unsigned long)index, (unsigned long)self.frameCount, self);
         return nil;
