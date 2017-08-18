@@ -11,7 +11,9 @@
 #import "FLAnimatedImage.h"
 #import <QuartzCore/QuartzCore.h>
 
-
+/* lzy注170818：
+ 只在定义了debug和debug宏的值为1的时候，才会有的protocol
+ */
 #if defined(DEBUG) && DEBUG
 @protocol FLAnimatedImageViewDebugDelegate <NSObject>
 @optional
@@ -35,6 +37,9 @@
 @property (nonatomic, strong, readwrite) UIImage *currentFrame;
 @property (nonatomic, assign, readwrite) NSUInteger currentFrameIndex;
 
+/* lzy注170818：
+ 循环计数
+ */
 @property (nonatomic, assign) NSUInteger loopCountdown;
 
 /**
@@ -44,7 +49,7 @@
 @property (nonatomic, strong) CADisplayLink *displayLink;
 
 /* lzy注170817：
- 在检查这个值之前，需要调用一下『-updateShouldAnimate』方法，不管 『animated image』是否存在的状态做出了改变，还是 『animated image』的可见属性被改变了。
+ 在检查这个值之前，需要调用一下『-updateShouldAnimate』方法，不管 『animated image』存在的状态做出了改变，还是 『animated image』的可见属性被改变了。
  */
 @property (nonatomic, assign) BOOL shouldAnimate; // Before checking this value, call `-updateShouldAnimate` whenever the animated image or visibility (window, superview, hidden, alpha) has changed.
 @property (nonatomic, assign) BOOL needsDisplayWhenImageBecomesAvailable;
@@ -106,7 +111,7 @@
 @synthesize runLoopMode = _runLoopMode;
 
 #pragma mark - Initializers
-// 没有在文档中出现的方法
+// 在文档中不是指定的初始化方法
 // -initWithImage: isn't documented as a designated initializer of UIImageView, but it actually seems to be.
 // Using -initWithImage: doesn't call any of the other designated initializers.
 - (instancetype)initWithImage:(UIImage *)image
@@ -148,7 +153,7 @@
 }
 /* lzy注170816：
  重写上面那么多方法，目的就是这个方法中，对runLoopMode进行默认的配置。
- 
+ -defaultRunLoopMode是本类的一个方法，返回一个字符串。NSRunLoopCommonModes （集合） NSDefaultRunLoopMode（默认的一个runloop模式）
  */
 - (void)commonInit
 {
@@ -156,7 +161,7 @@
 }
 
 
-#pragma mark - Accessors
+#pragma mark - Accessors （访问器）
 #pragma mark Public
 
 - (void)setAnimatedImage:(FLAnimatedImage *)animatedImage
@@ -233,13 +238,28 @@
 - (void)dealloc
 {
     // Removes the display link from all run loop modes.
+    /* Removes the object from all runloop modes (releasing the receiver if
+     * it has been implicitly retained) and releases the 'target' object. */
     [_displayLink invalidate];
 }
 
 
 #pragma mark - UIView Method Overrides
 #pragma mark Observing View-Related Changes
+/* lzy注170818：
+ 重写UIView的方法。
+ 监听的是 View相关的改变
+ */
 
+/* lzy注170818：
+ Tells the view that its superview changed.
+ The default implementation of this method does nothing. Subclasses can override it to perform additional actions whenever the superview changes.
+ Availability	iOS (2.0 and later), tvOS (9.0 and later)
+ 
+ 1.调用super的方法。
+ 2.检查图片『是否应该做动画』的标识
+ 3.应当就开始，不应该就停止
+ */
 - (void)didMoveToSuperview
 {
     [super didMoveToSuperview];
@@ -252,7 +272,12 @@
     }
 }
 
-
+/* lzy注170818：
+ Tells the view that its window object changed.
+ The default implementation of this method does nothing. Subclasses can override it to perform additional actions whenever the window changes.
+ The window property may be nil by the time that this method is called, indicating that the receiver does not currently reside in any window. This occurs when the receiver has just been removed from its superview or when the receiver has just been added to a superview that is not attached to a window. Overrides of this method may choose to ignore such cases if they are not of interest.
+ Availability	iOS (2.0 and later), tvOS (9.0 and later)
+ */
 - (void)didMoveToWindow
 {
     [super didMoveToWindow];
@@ -264,7 +289,15 @@
         [self stopAnimating];
     }
 }
+/* lzy注170818：
+ The view’s alpha value.
+ The value of this property is a floating-point number in the range 0.0 to 1.0, where 0.0 represents totally transparent and 1.0 represents totally opaque. This value affects only the current view and does not affect any of its embedded subviews.
+ Changes to this property can be animated.
+ Availability	iOS (2.0 and later), tvOS (9.0 and later)
 
+ 联想到有一个注意事项：设置SFSafariViewController的view的最小值是0.05，如果为0，系统直接就展示了。
+ 
+ */
 - (void)setAlpha:(CGFloat)alpha
 {
     [super setAlpha:alpha];
@@ -276,7 +309,14 @@
         [self stopAnimating];
     }
 }
-
+/* lzy注170818：
+ A Boolean value that determines whether the view is hidden.
+ Setting the value of this property to YES hides the receiver and setting it to NO shows the receiver. The default value is NO.
+ A hidden view disappears from its window and does not receive input events. It remains in its superview’s list of subviews, however, and participates in autoresizing as usual. Hiding a view with subviews has the effect of hiding those subviews and any view descendants they might have. This effect is implicit and does not alter the hidden state of the receiver’s descendants（后代、子视图、子节点）.
+ Hiding the view that is the window’s current first responder causes the view’s next valid key view to become the new first responder.
+ The value of this property reflects the state of the receiver only and does not account for the state of the receiver’s ancestors in the view hierarchy. Thus this property can be NO but the receiver may still be hidden if an ancestor is hidden.
+ Availability	iOS (2.0 and later), tvOS (9.0 and later)
+ */
 - (void)setHidden:(BOOL)hidden
 {
     [super setHidden:hidden];
@@ -291,7 +331,14 @@
 
 
 #pragma mark Auto Layout
-
+/* lzy注170818：
+ @property(nonatomic, readonly) CGSize intrinsicContentSize;
+ Description
+ The natural size for the receiving view, considering only properties of the view itself.
+ Custom views typically have content that they display of which the layout system is unaware. Setting this property allows a custom view to communicate to the layout system what size it would like to be based on its content. This intrinsic size must be independent of the content frame, because there’s no way to dynamically communicate a changed width to the layout system based on a changed height, for example.
+ If a custom view has no intrinsic size for a given dimension, it can use UIViewNoIntrinsicMetric for that dimension.
+ Availability	iOS (6.0 and later), tvOS (6.0 and later)
+ */
 - (CGSize)intrinsicContentSize
 {
     // Default to let UIImageView handle the sizing of its image, and anything else it might consider.
@@ -311,6 +358,19 @@
 #pragma mark - UIImageView Method Overrides
 #pragma mark Image Data
 
+/* lzy注170818：
+ 重写UIImageView的方法
+ */
+
+/* lzy注170818：
+ @property(nonatomic, strong) UIImage *image;
+ Description
+ The image displayed in the image view.
+ This property contains the main image displayed by the image view. This image is displayed when the image view is in its natural state. When highlighted, the image view displays the image in its highlightedImage property instead. If that property is set to nil, the image view applies a default highlight to this image. If the animationImages property contains a valid set of images, those images are used instead.
+ Changing the image in this property does not automatically change the size of the image view. After setting the image, call the sizeToFit method to recompute the image view’s size based on the new image and the active constraints.
+ This property is set to the image you specified at initialization time. If you did not use the initWithImage: or initWithImage:highlightedImage: method to initialize your image view, the initial value of this property is nil.
+ Availability	iOS (2.0 and later), tvOS (9.0 and later)
+ */
 - (UIImage *)image
 {
     UIImage *image = nil;
@@ -445,7 +505,7 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
 
 - (void)stopAnimating
 {
-    // 将调用1，在animatedImage的setter方法中，如果传入参数为nil，但是self.animatedImage有值，定时器暂停
+    // 如果传入参数为nil，但是self.animatedImage有值，定时器暂停
     if (self.animatedImage) {
         self.displayLink.paused = YES;
     } else {
@@ -453,7 +513,12 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
     }
 }
 
-
+/* lzy注170818：
+ Returns a Boolean value indicating whether the animation is running.
+ Returns
+ YES if the animation is running; otherwise, NO.
+ Availability	iOS (10.0 and later), tvOS (10.0 and later)
+ */
 - (BOOL)isAnimating
 {
     BOOL isAnimating = NO;
@@ -468,6 +533,17 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
 
 #pragma mark Highlighted Image Unsupport
 
+/* lzy注170818：
+ 不支持高亮图片状态
+ */
+
+/* lzy注170818：
+ @property(nonatomic, getter=isHighlighted) BOOL highlighted;
+ Description
+ A Boolean value that determines whether the image is highlighted.
+ This property determines whether the regular or highlighted images are used. When highlighted is set to YES, a non-animated image will use the highlightedImage property and an animated image will use the highlightedAnimationImages. If both of those properties are set to nil or if highlighted is set to NO, it will use the image and animationImages properties.
+ Availability	iOS (3.0 and later), tvOS (3.0 and later)
+ */
 - (void)setHighlighted:(BOOL)highlighted
 {
     // Highlighted image is unsupported for animated images, but implementing it breaks the image view when embedded in a UICollectionViewCell.

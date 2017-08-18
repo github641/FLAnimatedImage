@@ -47,9 +47,17 @@
  反之亦然，给本类的animatedImage赋值，将做初始化处理工作：把UIImageView.image转移到他的『posterImage』。然后将持有本类的currentFrame并开始做动画。
  */
 @property (nonatomic, strong) FLAnimatedImage *animatedImage;
+/* lzy注170818：
+ //播放了一帧播放之后都会回调
+ */
 @property (nonatomic, copy) void(^loopCompletionBlock)(NSUInteger loopCountRemaining);
-
+/* lzy注170818：
+ 当前帧图片
+ */
 @property (nonatomic, strong, readonly) UIImage *currentFrame;
+/* lzy注170818：
+ 当前帧索引
+ */
 @property (nonatomic, assign, readonly) NSUInteger currentFrameIndex;
 
 // The animation runloop mode. Enables playback during scrolling by allowing timer events (i.e. animation) with NSRunLoopCommonModes.
