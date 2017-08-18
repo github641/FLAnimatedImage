@@ -22,17 +22,36 @@
 
 @interface FLAnimatedImageView ()
 
+/* lzy注170817：
+ 在头文件的属性：
+ @property (nonatomic, strong, readonly) UIImage *currentFrame;
+ @property (nonatomic, assign, readonly) NSUInteger currentFrameIndex;
+ 
+ 在.m中把属性修饰符做了修改，把外边的修饰符重写了。
+ 
+ 其实就算是readonly修饰，也可以通过kvc的形式获取吧？
+ */
 // Override of public `readonly` properties as private `readwrite`
 @property (nonatomic, strong, readwrite) UIImage *currentFrame;
 @property (nonatomic, assign, readwrite) NSUInteger currentFrameIndex;
 
 @property (nonatomic, assign) NSUInteger loopCountdown;
+
+/**
+ 参数名意思是累加器。是NSTImeINterval类型。
+ */
 @property (nonatomic, assign) NSTimeInterval accumulator;
 @property (nonatomic, strong) CADisplayLink *displayLink;
 
+/* lzy注170817：
+ 在检查这个值之前，需要调用一下『-updateShouldAnimate』方法，不管 『animated image』是否存在的状态做出了改变，还是 『animated image』的可见属性被改变了。
+ */
 @property (nonatomic, assign) BOOL shouldAnimate; // Before checking this value, call `-updateShouldAnimate` whenever the animated image or visibility (window, superview, hidden, alpha) has changed.
 @property (nonatomic, assign) BOOL needsDisplayWhenImageBecomesAvailable;
 
+/* lzy注170817：
+ 如果定义了DEBUG并且正处于DEBUG模式，本类有一个调试delegate属性
+ */
 #if defined(DEBUG) && DEBUG
 @property (nonatomic, weak) id<FLAnimatedImageViewDebugDelegate> debug_delegate;
 #endif
@@ -41,10 +60,53 @@
 
 
 @implementation FLAnimatedImageView
+/* lzy注170817：
+ 使用@synthesize 指定.h中与runLoopMode属性对应的实例变量为_runLoopMode,即实际使用中是_runLoopMode
+ 
+ 
+ 4.@property，@dynamic与@synthesize的区别
+ 
+ @property：在iOS5之后编译器从GCC转换为LLVM，@property声明的属性默认会生成一个_类型的成员变量，同时也会生成setter/getter方法。在iOS5之前，属性的正常写法需要 成员变量 + @property + @synthesize 成员变量三个步骤。如下：
+ @interface ViewController ()
+ {
+ // 1.声明成员变量
+ NSString *myString;
+ }
+ //2.在用@property
+ @property(nonatomic, copy) NSString *myString;
+ @end
+ 
+ @implementation ViewController
+ //3.最后在@implementation中用synthesize生成setter&getter方法
+ @synthesize myString;
+ @end
+ @synthesize：于是synthesize两个作用：一是如果你没有手动实现setter方法和getter方法，那么编译器会自动为你加上这两个方法。二是可以指定与属性对应的实例变量（自定义Property所对应的实例变量）， 例如@synthesize myString = xxx，这时实例变量就是xxx。
+ 
+ @synthesize自动生成setter方法和getter方法举例：
+ 
+ 实现文件(.m)中
+ 　　@synthesize count;
+ 　　等效于在实现文件(.m)中实现2个方法。
+ 　　- (int)count
+ 　　{
+ 　　return count;
+ 　　}
+ 　　-(void)setCount:(int)newCount
+ 　　{
+ 　　count = newCount;
+ 　　}
+ @dynamic：@dynamic告诉编译器,属性的setter与getter方法由用户自己实现，不自动生成。
+ 
+ 作者：木格措的天空
+ 链接：http://www.jianshu.com/p/94fb8b816147
+ 來源：简书
+ 著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+ 
+ */
 @synthesize runLoopMode = _runLoopMode;
 
 #pragma mark - Initializers
-
+// 没有在文档中出现的方法
 // -initWithImage: isn't documented as a designated initializer of UIImageView, but it actually seems to be.
 // Using -initWithImage: doesn't call any of the other designated initializers.
 - (instancetype)initWithImage:(UIImage *)image
@@ -55,6 +117,7 @@
     }
     return self;
 }
+// 没有在文档中出现的方法
 
 // -initWithImage:highlightedImage: also isn't documented as a designated initializer of UIImageView, but it doesn't call any other designated initializers.
 - (instancetype)initWithImage:(UIImage *)image highlightedImage:(UIImage *)highlightedImage
@@ -83,7 +146,10 @@
     }
     return self;
 }
-
+/* lzy注170816：
+ 重写上面那么多方法，目的就是这个方法中，对runLoopMode进行默认的配置。
+ 
+ */
 - (void)commonInit
 {
     self.runLoopMode = [[self class] defaultRunLoopMode];
@@ -95,24 +161,53 @@
 
 - (void)setAnimatedImage:(FLAnimatedImage *)animatedImage
 {
+
     if (![_animatedImage isEqual:animatedImage]) {
+        // 进入这个大括号，符合下面条件之一
+        // 1、图片不存在FLAnimatedImageView.animatedImage不存在或者animatedImage不存在
+        // 2、两者存在但是notEqual
+        
+        // 这个if else#处理『传入参数』存在和不存在的情况#
         if (animatedImage) {
+            // 传入参数存在
+  
             // Clear out the image.
             super.image = nil;
             // Ensure disabled highlighting; it's not supported (see `-setHighlighted:`).
             super.highlighted = NO;
             // UIImageView seems to bypass some accessors when calculating its intrinsic content size, so this ensures its intrinsic content size comes from the animated image.
+            // UIImageView在计算它本身内容的size的时候，似乎绕开了一些『accessors』。保证它本身内容的size来自animated image。
+            /* lzy注170816：
+             Invalidates the view’s intrinsic content size.
+             Call this when something changes in your custom view that invalidates its intrinsic content size. This allows the constraint-based layout system to take the new intrinsic content size into account in its next layout pass.
+             Availability	iOS (6.0 and later), tvOS (6.0 and later)
+             这个是UIView的方法。
+             http://www.jianshu.com/p/69358b33e0f6
+             ntrinsic Contenet Size – Intrinsic Content Size：固有的大小。
+             
+             在AutoLayout中，它作为UIView的属性（不是语法上的属性），意思就是说我知道自己的大小，如果你没有为我指定大小，我就按照这个大小来。
+             
+             比如：大家都知道在使用AutoLayout的时候，UILabel是不用指定尺寸大小的，只需指定位置即可，就是因为，只要确定了文字内容，字体等信息，它自己就能计算出大小来。
+             
+             同样的UILabel，UIImageView，UIButton等这些组件及某些包含它们的系统组件都有 Intrinsic Content Size 属性，也就说他们都有自己计算size的能力。
+             */
             [self invalidateIntrinsicContentSize];
         } else {
+            // 传入参数为空
             // Stop animating before the animated image gets cleared out.
             [self stopAnimating];
         }
         
+
+//        把UIImageView.image转移到他的『posterImage』。然后将持有本类的currentFrame并开始做动画。
+        
+        // setter本来应该做的事情，持有新变量
         _animatedImage = animatedImage;
         
+        // 这是UIImage对象
         self.currentFrame = animatedImage.posterImage;
         self.currentFrameIndex = 0;
-        if (animatedImage.loopCount > 0) {
+        if (animatedImage.loopCount > 0) {// gif轮播次数处理
             self.loopCountdown = animatedImage.loopCount;
         } else {
             self.loopCountdown = NSUIntegerMax;
@@ -120,7 +215,10 @@
         self.accumulator = 0.0;
         
         // Start animating after the new animated image has been set.
+        
+        // self.shouldAnimate = self.animatedImage && self.window && self.superview && ![self isHidden] && self.alpha > 0.0;
         [self updateShouldAnimate];
+        
         if (self.shouldAnimate) {
             [self startAnimating];
         }
@@ -238,18 +336,31 @@
 
 
 #pragma mark Animating Images
-
+/* lzy注170817：
+ MAX函数的参数之一
+ */
 - (NSTimeInterval)frameDelayGreatestCommonDivisor
 {
+    /* lzy注170817：
+     这个单词应该打错了吧，
+     precision n. 精度。
+     
+     `kFLAnimatedImageDelayTimeIntervalMinimum`最快的浏览器一般定义的：动图延迟时间间隔最小值。
+     
+     
+     */
     // Presision is set to half of the `kFLAnimatedImageDelayTimeIntervalMinimum` in order to minimize frame dropping.
+    
     const NSTimeInterval kGreatestCommonDivisorPrecision = 2.0 / kFLAnimatedImageDelayTimeIntervalMinimum;
 
     NSArray *delays = self.animatedImage.delayTimesForIndexes.allValues;
 
     // Scales the frame delays by `kGreatestCommonDivisorPrecision`
     // then converts it to an UInteger for in order to calculate the GCD.
+    // lrint 转为一个double类型
     NSUInteger scaledGCD = lrint([delays.firstObject floatValue] * kGreatestCommonDivisorPrecision);
     for (NSNumber *value in delays) {
+        // 求最大公约数
         scaledGCD = gcd(lrint([value floatValue] * kGreatestCommonDivisorPrecision), scaledGCD);
     }
 
@@ -260,6 +371,9 @@
 
 static NSUInteger gcd(NSUInteger a, NSUInteger b)
 {
+    /* lzy注170817：
+     最大公约数
+     */
     // http://en.wikipedia.org/wiki/Greatest_common_divisor
     if (a < b) {
         return gcd(b, a);
@@ -277,16 +391,26 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
     }
 }
 
-
+/* lzy注170817：
+ animatedImage的setter方法中，将调用这个方法。
+ */
 - (void)startAnimating
 {
     if (self.animatedImage) {
         // Lazily create the display link.
         if (!self.displayLink) {
             // It is important to note the use of a weak proxy here to avoid a retain cycle. `-displayLinkWithTarget:selector:`
+            
             // will retain its target until it is invalidated. We use a weak proxy so that the image view will get deallocated
+            
             // independent of the display link's lifetime. Upon image view deallocation, we invalidate the display
+            
             // link which will lead to the deallocation of both the display link and the weak proxy.
+            
+            /* lzy注170816：
+             为避免循环引用。采用 weak proxy。
+             FLWeakProxy继承自 root class ：NSProxy。
+             */
             FLWeakProxy *weakProxy = [FLWeakProxy weakProxyForObject:self];
             self.displayLink = [CADisplayLink displayLinkWithTarget:weakProxy selector:@selector(displayDidRefresh:)];
             
@@ -295,11 +419,16 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
 
         // Note: The display link's `.frameInterval` value of 1 (default) means getting callbacks at the refresh rate of the display (~60Hz).
         // Setting it to 2 divides the frame rate by 2 and hence calls back at every other display refresh.
+        
+        
         const NSTimeInterval kDisplayRefreshRate = 60.0; // 60Hz
+        
+//     [self frameDelayGreatestCommonDivisor]方法，是下面MAX函数的参数之一
         self.displayLink.frameInterval = MAX([self frameDelayGreatestCommonDivisor] * kDisplayRefreshRate, 1);
 
         self.displayLink.paused = NO;
     } else {
+        // 调用UIImageView的方法
         [super startAnimating];
     }
 }
@@ -316,6 +445,7 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
 
 - (void)stopAnimating
 {
+    // 将调用1，在animatedImage的setter方法中，如果传入参数为nil，但是self.animatedImage有值，定时器暂停
     if (self.animatedImage) {
         self.displayLink.paused = YES;
     } else {
@@ -358,7 +488,9 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
     self.shouldAnimate = self.animatedImage && isVisible;
 }
 
-
+/* lzy注170817：
+ self.dispalyLink 定时调用的方法
+ */
 - (void)displayDidRefresh:(CADisplayLink *)displayLink
 {
     // If for some reason a wild call makes it through when we shouldn't be animating, bail.
@@ -368,19 +500,36 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
         return;
     }
     
+    // 从animatedImage对象中的字典（存放每一帧图片播放完毕之后应该延迟的时间）
     NSNumber *delayTimeNumber = [self.animatedImage.delayTimesForIndexes objectForKey:@(self.currentFrameIndex)];
     // If we don't have a frame delay (e.g. corrupt frame), don't update the view but skip the playhead to the next frame (in else-block).
+    
+    // 播放完毕一帧之后，加入从animatedImage
     if (delayTimeNumber) {
         NSTimeInterval delayTime = [delayTimeNumber floatValue];
+        
+        // 获取懒缓存的当前帧的图片
         // If we have a nil image (e.g. waiting for frame), don't update the view nor playhead.
         UIImage *image = [self.animatedImage imageLazilyCachedAtIndex:self.currentFrameIndex];
+        
+        // 懒缓存图片存在做处理，不存在，打印log和debug回调，其他什么也不做
         if (image) {
-            FLLog(FLLogLevelVerbose, @"Showing frame %lu for animated image: %@", (unsigned long)self.currentFrameIndex, self.animatedImage);
+            FLLog(FLLogLevelVerbose, @"Showing frame %lu for animated image: %@", (unsigned long)self.currentFrameIndex, self.animatedImage);// 打印要展示的帧索引和帧图片
             self.currentFrame = image;
-            if (self.needsDisplayWhenImageBecomesAvailable) {
-                [self.layer setNeedsDisplay];
+            if (self.needsDisplayWhenImageBecomesAvailable) {// 当图片变得可用了，需要展示标识为真
+                [self.layer setNeedsDisplay];// 刷新layer，并至标志位为NO
                 self.needsDisplayWhenImageBecomesAvailable = NO;
             }
+            
+            /* lzy注170818：
+             1.duration属性:提供了每帧之间的时间，也就是屏幕每次刷新之间的的时间。该属性在target的selector被首次调用以后才会被赋值。selector的调用间隔时间计算方式是：时间=duration×frameInterval。 我们可以使用这个时间来计算出下一帧要显示的UI的数值。但是 duration只是个大概的时间，如果CPU忙于其它计算，就没法保证以相同的频率执行屏幕的绘制操作，这样会跳过几次调用回调方法的机会。
+             2.frameInterval属性:是可读可写的NSInteger型值，标识间隔多少帧调用一次selector 方法，默认值是1，即每帧都调用一次。如果每帧都调用一次的话，对于iOS设备来说那刷新频率就是60HZ也就是每秒60次，如果将 frameInterval 设为2 那么就会两帧调用一次，也就是变成了每秒刷新30次。
+             
+             作者：huanghy
+             链接：http://www.jianshu.com/p/62d6d1c21456
+             來源：简书
+             著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+             */
             
             self.accumulator += displayLink.duration * displayLink.frameInterval;
             
@@ -421,6 +570,10 @@ static NSUInteger gcd(NSUInteger a, NSUInteger b)
 + (NSString *)defaultRunLoopMode
 {
     // Key off `activeProcessorCount` (as opposed to `processorCount`) since the system could shut down cores in certain situations.
+    /* lzy注170816：
+     在本类的common init中回调用这个方法。
+     根据设备当前活跃的处理器核心个数，来决定runloop 模式
+     */
     return [NSProcessInfo processInfo].activeProcessorCount > 1 ? NSRunLoopCommonModes : NSDefaultRunLoopMode;
 }
 

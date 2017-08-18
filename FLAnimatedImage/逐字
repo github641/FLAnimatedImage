@@ -1,0 +1,21 @@
+
+不熟悉需要深入一些学习的东西：
+会先过一遍，大概列出来。
+然后在一个个查资料。
+每个点学习完，在回到源码中是怎么使用的，加深理解。
+
+可能注释在源码中。
+或者另外开了印象笔记和testRepo
+
+1、CADisplayLink
+http://www.jianshu.com/p/62d6d1c21456
+http://www.cocoachina.com/ios/20151231/14823.html
+
+2、NSProxy
+
+
+3、invalidateIntrinsicContentSize
+
+4、NSRunLoopCommonModes、NSDefaultRunLoopMode 看印象笔记收藏的很多学习资料组成的『Runloop』笔记本
+
+5、NSTimeInterval 就是double类型。

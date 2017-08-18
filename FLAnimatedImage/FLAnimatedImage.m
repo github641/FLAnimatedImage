@@ -19,7 +19,7 @@
 
 #define MEGABYTE (1024 * 1024)
 
-// This is how the fastest browsers do it as per 2012: http://nullsleep.tumblr.com/post/16524517190/animated-gif-minimum-frame-delay-browser-compatibility
+// This is how the fastest browsers do it as per 2012: http://nullsleep.tumblr.com/post/16524517190/animated-gif-minimum-frame-delay-browser-compatibility 最快的浏览器一般定义的：动图延迟时间间隔最小值
 const NSTimeInterval kFLAnimatedImageDelayTimeIntervalMinimum = 0.02;
 
 // An animated image's data size (dimensions * frameCount) category; its value is the max allowed memory (in MB).

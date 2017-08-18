@@ -8,9 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		0C22DAEC1BCABF4F006E1D3B /* FLAnimatedImage.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C22DAE71BCABF4F006E1D3B /* FLAnimatedImage.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		0C22DAED1BCABF4F006E1D3B /* FLAnimatedImage.m in Sources */ = {isa = PBXBuildFile; fileRef = 0C22DAE81BCABF4F006E1D3B /* FLAnimatedImage.m */; settings = {ASSET_TAGS = (); }; };
+		0C22DAED1BCABF4F006E1D3B /* FLAnimatedImage.m in Sources */ = {isa = PBXBuildFile; fileRef = 0C22DAE81BCABF4F006E1D3B /* FLAnimatedImage.m */; };
 		0C22DAEE1BCABF4F006E1D3B /* FLAnimatedImageView.h in Headers */ = {isa = PBXBuildFile; fileRef = 0C22DAE91BCABF4F006E1D3B /* FLAnimatedImageView.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		0C22DAEF1BCABF4F006E1D3B /* FLAnimatedImageView.m in Sources */ = {isa = PBXBuildFile; fileRef = 0C22DAEA1BCABF4F006E1D3B /* FLAnimatedImageView.m */; settings = {ASSET_TAGS = (); }; };
+		0C22DAEF1BCABF4F006E1D3B /* FLAnimatedImageView.m in Sources */ = {isa = PBXBuildFile; fileRef = 0C22DAEA1BCABF4F006E1D3B /* FLAnimatedImageView.m */; };
+		6C92A1F11F441EE4006B081E /* 逐字 in Resources */ = {isa = PBXBuildFile; fileRef = 6C92A1F01F441EE4006B081E /* 逐字 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +20,7 @@
 		0C22DAE91BCABF4F006E1D3B /* FLAnimatedImageView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FLAnimatedImageView.h; sourceTree = "<group>"; };
 		0C22DAEA1BCABF4F006E1D3B /* FLAnimatedImageView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FLAnimatedImageView.m; sourceTree = "<group>"; };
 		0C22DAEB1BCABF4F006E1D3B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6C92A1F01F441EE4006B081E /* 逐字 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "逐字"; sourceTree = "<group>"; };
 		92C9BC0C1B199DC500D79B06 /* FLAnimatedImage.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FLAnimatedImage.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -41,6 +43,7 @@
 				0C22DAE91BCABF4F006E1D3B /* FLAnimatedImageView.h */,
 				0C22DAEA1BCABF4F006E1D3B /* FLAnimatedImageView.m */,
 				0C22DAEB1BCABF4F006E1D3B /* Info.plist */,
+				6C92A1F01F441EE4006B081E /* 逐字 */,
 			);
 			path = FLAnimatedImage;
 			sourceTree = "<group>";
@@ -130,6 +133,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6C92A1F11F441EE4006B081E /* 逐字 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
