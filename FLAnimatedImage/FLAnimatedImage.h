@@ -5,7 +5,12 @@
 //  Created by Raphael Schaad on 7/8/13.
 //  Copyright (c) 2013-2015 Flipboard. All rights reserved.
 //
-
+/* lzy注170823
+ 对比YLGIFImage（继承自UIImage），便于与UIImageView+AFN配合。
+ 本类的FLAnimatedImage是继承自NSObect的。
+ FLAnimatedImage考虑内容更多，更加全面，且目前开源社区更加活跃，且被纳入到SDWebImage中作为gif播放的组件。
+ 
+ */
 /* lzy注170816：
  SDWebImage在4.1时，取消了原来的UIImage+Gif的分类来加载动图。
  而是add subModule的形式，使用了本类库来加载动图，并写了一个工具类来和SDWebImage进行契合。
